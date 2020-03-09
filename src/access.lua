@@ -8,7 +8,7 @@ local _M = {}
 
 local IAM_CREDENTIALS_CACHE_KEY = "plugin." .. plugin_name .. ".iam_role_temp_creds"
 local AWS_PORT = 443
-local AWS_METHOD = "GET"
+local AWS_METHOD = "POST"
 
 local fetch_credentials
 do
@@ -28,13 +28,27 @@ end
 
 function _M.execute(conf)
 
-  -- Get body with specific Content-Type
-  local body, err, mimetype = kong.request.get_body()
+  -- Get body with specific Content-Type "application/json"
+  body, err, mimetype = kong.request.get_body()
   if err then
-    kong.response.exit(400, err)
+    if (err == 'missing content type' and not body) then
+      -- It looks like a request without body, all parameters should be at conf.override_body
+      body={}
+      mimetype="application/json"
+    else
+      kong.response.exit(400, err)
+    end
   end
   if not mimetype == "application/json" then
     kong.response.exit(400, { message="Only Content-Type application/json supported" })
+  end
+
+  -- Override body with conf values
+  if conf.override_body then
+    for _,map in pairs(conf.override_body) do
+      local key, value = map:match("^([^:]+):*(.-)$")
+      body[key] = value
+    end
   end
 
   -- Set "service" and "region" from body
@@ -49,15 +63,7 @@ function _M.execute(conf)
   -- Set host and path based on the kong service
   local host = fmt("%s.%s.amazonaws.com", service, region)
   local kong_service = kong.router.get_service()
-  local path = kong_service['path']
-
-  -- Override body with conf values
-  if conf.override_body then
-    for _,map in pairs(conf.override_body) do
-      local key, value = map:match("^([^:]+):*(.-)$")
-      body[key] = value
-    end
-  end
+  local path = kong_service['path'] or '/'
 
   -- Override path
   if conf.override_path_via_body then
@@ -66,6 +72,7 @@ function _M.execute(conf)
       kong.response.exit(400, { message="override_path_via_body true but body does not contains " .. conf.body_path_key })
     end
   end
+
   if body[conf.body_path_key] then
     body[conf.body_path_key]=nil
   end

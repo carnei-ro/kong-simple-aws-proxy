@@ -82,6 +82,6 @@ req-aux:
 	@curl -s http://localhost:8000/aux
 
 config:
-	@curl -i -X POST http://localhost:8001/services/ --data "name=httpbin-anything" --data "url=http://httpbin.org/get"
+	@curl -i -X POST http://localhost:8001/services/ --data "name=httpbin-anything" --data "url=http://localhost"
 	@curl -i -X POST http://localhost:8001/services/httpbin-anything/routes --data "paths[]=/"
-	@curl -i -X POST http://localhost:8001/services/httpbin-anything/plugins -F "name=${NAME}" -F config.override_path_via_body=true -F config.override_body[]='MessageBody:it works really well' # -F config.override_body[]='RequestPath:/739171219021/testegrella'  #-F "config.fallback_url=https://www.httpbin.org/anything"
+	@curl -i -X POST http://localhost:8001/services/httpbin-anything/plugins -d "name=${NAME}" -d config.override_path_via_body=true -d config.override_body[]='RequestPath:/000000000000/testequeue' -d config.override_body[]='Action:SendMessage' -d config.override_body[]='Version:2012-11-05' -d config.override_body[]='AWSService:sqs' -d config.override_body[]='AWSRegion:sa-east-1' -d config.override_body[]='MessageBody:sent via get request'
