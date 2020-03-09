@@ -29,7 +29,7 @@ end
 function _M.execute(conf)
 
   -- Get body with specific Content-Type "application/json"
-  body, err, mimetype = kong.request.get_body()
+  local body, err, mimetype = kong.request.get_body()
   if err then
     if (err == 'missing content type' and not body) then
       -- It looks like a request without body, all parameters should be at conf.override_body
