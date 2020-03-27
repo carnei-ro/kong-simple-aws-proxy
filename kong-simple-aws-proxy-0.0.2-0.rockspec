@@ -1,5 +1,5 @@
 package = "kong-simple-aws-proxy"
-version = "0.0.1-0"
+version = "0.0.2-0"
 
 source = {
  url    = "git@github.com:carnei-ro/kong-simple-aws-proxy.git",
