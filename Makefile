@@ -84,4 +84,5 @@ req-aux:
 config:
 	@curl -i -X POST http://localhost:8001/services/ --data "name=httpbin-anything" --data "url=http://localhost"
 	@curl -i -X POST http://localhost:8001/services/httpbin-anything/routes --data "paths[]=/" --data "name=root"
-	@curl -i -X POST http://localhost:8001/services/httpbin-anything/plugins -d "name=${NAME}" -d config.api_prefix=true -d config.force_content_type_amz_json=true -d config.override_body[]='AWSService:ecr' -d config.override_body[]='AWSRegion:us-east-1' -d config.override_headers[]='X-Amz-Target:AmazonEC2ContainerRegistry_V20150921.ListImages'
+	@curl -i -X POST http://localhost:8001/services/httpbin-anything/plugins -d "name=${NAME}" -d config.override_path_via_body=true
+	#@curl -i -X POST http://localhost:8001/services/httpbin-anything/plugins -d "name=${NAME}" -d config.api_prefix=true -d config.force_content_type_amz_json=true -d config.override_body[]='AWSService:ecr' -d config.override_body[]='AWSRegion:us-east-1' -d config.override_headers[]='X-Amz-Target:AmazonEC2ContainerRegistry_V20150921.ListImages'

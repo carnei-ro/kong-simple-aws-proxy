@@ -6,7 +6,7 @@ summary: kong plugin to modify and assing requests (v4) for aws
 
 ## Use
 
-### Configure plugin
+### Configure plugin - SQS/SNS (maybe others)
 
 ```yaml
 plugins:
@@ -51,3 +51,26 @@ http POST localhost:8000/ \
   Action='Publish' \
   TopicArn='arn:aws:sns:sa-east-1:000000000000:testtopic'  
 ``` 
+
+### Configure plugin - ECR
+
+```yaml
+plugins:
+- name: kong-simple-aws-proxy
+  config:
+    api_prefix: true # Append "api." to target host
+    force_content_type_amz_json: true
+    override_body:
+    - AWSService:ecr
+    - AWSRegion:us-east-1
+    override_headers:
+    - X-Amz-Target:AmazonEC2ContainerRegistry_V20150921.ListImages # Only perform ListImages
+```
+
+### List Images
+
+```bash
+curl -X POST localhost:8000/ \
+  -H content-type:application/json \
+  -d '{ "RequestPayload": {"repositoryName": "my-repository", "registryId": "000000000000"} }'
+```
