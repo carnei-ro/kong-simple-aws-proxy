@@ -1,5 +1,6 @@
 local plugin_name = ({...})[1]:match("^kong%.plugins%.([^%.]+)")
 local encode_args = require("ngx").encode_args
+local json_encode = require('cjson').encode
 local aws_v4      = require("kong.plugins." .. plugin_name .. ".v4")
 local fmt         = string.format
 local kong        = kong
@@ -28,6 +29,12 @@ end
 
 function _M.execute(conf)
 
+  local override_content_type = false
+  if kong.request.get_header("Content-Type") == "application/x-amz-json-1.1" then
+    kong.service.request.set_header('Content-Type', 'application/json')
+    override_content_type = true
+  end
+
   -- Get body with specific Content-Type "application/json"
   local body, err, mimetype = kong.request.get_body()
   if err then
@@ -43,11 +50,26 @@ function _M.execute(conf)
     kong.response.exit(400, { message="Only Content-Type application/json supported" })
   end
 
+  if override_content_type then
+    mimetype = "application/x-amz-json-1.1"
+  end
+  if conf.force_content_type_amz_json then
+    mimetype = "application/x-amz-json-1.1"
+  end
+
   -- Override body with conf values
   if conf.override_body then
     for _,map in pairs(conf.override_body) do
       local key, value = map:match("^([^:]+):*(.-)$")
       body[key] = value
+    end
+  end
+
+  -- Override headers with conf values
+  if conf.override_headers then
+    for _,map in pairs(conf.override_headers) do
+      local key, value = map:match("^([^:]+):*(.-)$")
+      kong.service.request.set_header(key, value)
     end
   end
 
@@ -77,6 +99,12 @@ function _M.execute(conf)
     body[conf.body_path_key]=nil
   end
 
+  local request_payload = nil
+  if body[conf.body_payload_key] then
+    request_payload = json_encode(body['RequestPayload'])
+    body[conf.body_payload_key]=nil
+  end
+
   -- Prepare "opts" table used in the request
   local opts = {
     region = region,
@@ -90,6 +118,7 @@ function _M.execute(conf)
     host = host,
     port = AWS_PORT,
     query = encode_args(body),
+    body = request_payload
   }
 
   -- Get AWS Access and Secret Key from conf or AWS Access, Secret Key and Token from cache or iam role
@@ -116,6 +145,11 @@ function _M.execute(conf)
     opts.secret_key = conf.aws_secret
   end
 
+  local header_target = kong.request.get_header("X-Amz-Target")
+  if header_target then
+    opts.headers['X-Amz-Target']=header_target
+  end
+
   -- Prepare the request based on the "opts" table
   local req, err = aws_v4(opts)
   if err then
@@ -125,8 +159,19 @@ function _M.execute(conf)
   kong.service.request.set_method(req.method)
   kong.service.request.set_scheme("https")
   kong.service.request.set_path(req.target)
-  kong.service.set_target(req.host, req.port)
-  kong.service.request.set_raw_body('')
+
+  if conf.api_prefix then
+    kong.service.set_target('api.' .. req.host, req.port)
+  else
+    kong.service.set_target(req.host, req.port)
+  end
+
+  if request_payload then
+    kong.service.request.set_raw_body(request_payload)
+  else
+    kong.service.request.set_raw_body('')
+  end
+
   kong.service.request.set_headers(req.headers)
 
   -- Used for debug:

@@ -19,6 +19,11 @@ return {
             default = "AWSService",
             required = true
           } },
+          { body_payload_key = {
+            type = "string",
+            default = "RequestPayload",
+            required = true
+          } },
           { body_region_key = {
             type = "string",
             default = "AWSRegion",
@@ -28,11 +33,23 @@ return {
             type = "boolean",
             default = false
           } },
+          { api_prefix = {
+            type = "boolean",
+            default = false
+          } },
+          { force_content_type_amz_json = {
+            type = "boolean",
+            default = false
+          } },
           { body_path_key = {
             type = "string",
             default = "RequestPath"
           } },
           { override_body = {
+            type = "array",
+            elements = { type = "string", match = "^[^:]+:.*$" }
+          } },
+          { override_headers = {
             type = "array",
             elements = { type = "string", match = "^[^:]+:.*$" }
           } }
