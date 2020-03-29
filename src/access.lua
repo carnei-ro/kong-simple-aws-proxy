@@ -1,5 +1,6 @@
 local plugin_name = ({...})[1]:match("^kong%.plugins%.([^%.]+)")
 local encode_args = require("ngx").encode_args
+local decode_args = require("ngx").decode_args
 local json_encode = require('cjson').encode
 local aws_v4      = require("kong.plugins." .. plugin_name .. ".v4")
 local fmt         = string.format
@@ -55,6 +56,19 @@ function _M.execute(conf)
   end
   if conf.force_content_type_amz_json then
     mimetype = "application/x-amz-json-1.1"
+  end
+
+  if conf.querystring_to_payload then
+    if not body[conf.body_payload_key] then
+      body[conf.body_payload_key]={}
+    end
+    for _,map in pairs(conf.querystring_to_payload) do
+      local qs, key = map:match("^([^:]+):*(.-)$")
+      body[conf.body_payload_key][key] = kong.request.get_query_arg(qs)
+      local tbl_qs=decode_args(kong.request.get_raw_query())
+      tbl_qs[qs]=nil
+      kong.service.request.set_raw_query(encode_args(tbl_qs))
+    end
   end
 
   -- Override body with conf values
@@ -158,6 +172,9 @@ function _M.execute(conf)
 
   kong.service.request.set_method(req.method)
   kong.service.request.set_scheme("https")
+  if req.target == "/?" then 
+    req.target = "/"
+  end
   kong.service.request.set_path(req.target)
 
   if conf.api_prefix then
@@ -175,8 +192,8 @@ function _M.execute(conf)
   kong.service.request.set_headers(req.headers)
 
   -- Used for debug:
-  -- kong.service.set_target("httpbin.org", req.port)
-  -- kong.service.request.set_path("/anything" .. req.target)
+  -- kong.service.set_target("postman-echo.com", req.port)
+  -- kong.service.request.set_path("/post" .. req.target)
   
   -- Used for debug without leaking keys
   -- kong.response.exit(200, req)

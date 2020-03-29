@@ -2,7 +2,7 @@ local plugin = require("kong.plugins.base_plugin"):extend()
 local plugin_name = ({...})[1]:match("^kong%.plugins%.([^%.]+)")
 local access = require("kong.plugins." .. plugin_name .. ".access")
 
-plugin.VERSION = "0.0.2-0"
+plugin.VERSION = "0.0.3-0"
 plugin.PRIORITY = 751
 
 function plugin:new()

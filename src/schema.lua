@@ -52,6 +52,10 @@ return {
           { override_headers = {
             type = "array",
             elements = { type = "string", match = "^[^:]+:.*$" }
+          } },
+          { querystring_to_payload = {
+            type = "array",
+            elements = { type = "string", match = "^[^:]+:.*$" }
           } }
         },
       },
