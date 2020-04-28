@@ -56,7 +56,11 @@ return {
           { querystring_to_payload = {
             type = "array",
             elements = { type = "string", match = "^[^:]+:.*$" }
-          } }
+          } },
+          { body_as_message_for_sns_sqs = {
+            type = "boolean",
+            default = true
+          } },
         },
       },
     },

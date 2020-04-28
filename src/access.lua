@@ -119,6 +119,25 @@ function _M.execute(conf)
     body[conf.body_payload_key]=nil
   end
 
+  if conf.body_as_message_for_sns_sqs and (service == 'sqs' or service == 'sns') then
+    local new_body = {}
+    for _,k in ipairs({ "Action", "Version", "X-Amz-Algorithm", "X-Amz-Credential", "X-Amz-Date", "X-Amz-Security-Token", "X-Amz-Signature", "X-Amz-SignedHeaders", "DelaySeconds", "MessageAttribute", "MessageDeduplicationId", "MessageGroupId", "MessageSystemAttribute", "QueueUrl" }) do
+        new_body[k] = body[k] and body[k] or nil
+        body[k] = nil
+    end
+    if service == 'sqs' then
+      new_body["MessageBody"]=json_encode(body)
+    end
+    if service == 'sns' then
+      new_body["Message"]=json_encode(body)
+    end
+    body=new_body
+  end
+
+  if (service == 'sqs' or service == 'sns') and (not body["MessageBody"] or body["Message"]) then
+    kong.response.exit(400, "configure body_as_message_for_sns_sqs or send MessageBody for SQS or Message for SNS")
+  end
+
   -- Prepare "opts" table used in the request
   local opts = {
     region = region,

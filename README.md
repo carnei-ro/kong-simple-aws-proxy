@@ -4,6 +4,27 @@
 
 summary: kong plugin to modify and assing requests (v4) for aws
 
+## Default Values
+
+```yaml
+plugins:
+- name: kong-simple-aws-proxy
+  config:
+    aws_key:
+    aws_secret:
+    body_service_key: AWSService 
+    body_payload_key: RequestPayload 
+    body_region_key: AWSRegion 
+    override_path_via_body: false 
+    api_prefix: false 
+    force_content_type_amz_json: false 
+    body_path_key: RequestPath 
+    override_body: [] # ["bodyKey:value"]
+    override_headers: [] # ["headerName:value"]
+    querystring_to_payload: [] # ["qsName:payloadKey"]
+    body_as_message_for_sns_sqs: true
+```
+
 ## Use
 
 ### Configure plugin - SQS/SNS (maybe others)
@@ -14,7 +35,6 @@ plugins:
   config:
     override_path_via_body: true # If false - Path from "Service" object - Needed if body contains RequestPath
     override_body:
-    - MessageBody:it works really well
     - Action=SendMessage # To SQS - Only allow send messages
     - RequestPath:/000000000000/test_queue # To SQS - Only allow send to this queue
 ```
