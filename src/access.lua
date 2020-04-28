@@ -134,7 +134,7 @@ function _M.execute(conf)
     body=new_body
   end
 
-  if (service == 'sqs' or service == 'sns') and (not body["MessageBody"] or not body["Message"]) then
+  if (service == 'sqs' and not body["MessageBody"]) or (service == 'sns' and body["Message"]) then
     kong.response.exit(400, "configure body_as_message_for_sns_sqs or send MessageBody for SQS or Message for SNS")
   end
 
