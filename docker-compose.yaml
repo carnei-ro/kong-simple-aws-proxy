@@ -20,7 +20,7 @@ services:
 
   kong:
     #image: kong-docker-kong-enterprise-edition-docker.bintray.io/kong-enterprise-edition:0.35-1-centos
-    image: kong:1.2-centos
+    image: kong:2.0-centos
     #image: kong:2.0-centos
     depends_on:
       - kong-database
@@ -40,16 +40,18 @@ services:
       - KONG_PLUGINS=bundled,${NAME}
     volumes:
       - plugin-development:/plugin-development
+    user: "0:0"
     command:
       - /bin/bash
       - -c
       - |
         sleep 5
-        mkdir -p /usr/local/lib/luarocks/rocks/${NAME}/${VERSION}/
-        ln -s /plugin-development/${NAME}-${VERSION}.rockspec /usr/local/lib/luarocks/rocks/${NAME}/${VERSION}/${NAME}-${VERSION}.rockspec
+        mkdir -p /usr/local/lib/luarocks/rocks-5.1/${NAME}/${VERSION}/
+        ln -s /plugin-development/${NAME}-${VERSION}.rockspec /usr/local/lib/luarocks/rocks-5.1/${NAME}/${VERSION}/${NAME}-${VERSION}.rockspec
         ln -s /plugin-development/src /usr/local/share/lua/5.1/kong/plugins/${NAME}
-        sed -i "/proxy_set_header.*X-Forwarded-For/d; /proxy_set_header.*X-Real-IP/d;" /usr/local/share/lua/5.1/kong/templates/nginx_kong.lua
         kong migrations bootstrap
+        kong migrations list 
+        kong migrations up
         /usr/local/bin/kong start --run-migrations --vv
     ports:
       - "8000:8000"

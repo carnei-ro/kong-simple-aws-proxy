@@ -5,6 +5,7 @@ local json_encode = require('cjson').encode
 local aws_v4      = require("kong.plugins." .. plugin_name .. ".v4")
 local fmt         = string.format
 local kong        = kong
+local ipairs      = ipairs
 
 local _M = {}
 
@@ -26,6 +27,14 @@ do
       break
     end
   end
+end
+
+local function move_values(tbl1, tbl2, keys)
+  for _,k in ipairs(keys) do
+    tbl1[k] = tbl2[k] and tbl2[k] or nil
+    tbl2[k] = nil
+  end
+  return tbl1, tbl2
 end
 
 function _M.execute(conf)
@@ -119,22 +128,21 @@ function _M.execute(conf)
     body[conf.body_payload_key]=nil
   end
 
-  if conf.body_as_message_for_sns_sqs and (service == 'sqs' or service == 'sns') then
+  if conf.body_as_message_for_sns_sqs and ((service == "sqs" and body["Action"]=="SendMessage") or (service == "sns" and body["Action"]=="Publish")) then
     local new_body = {}
-    for _,k in ipairs({ "Action", "Version", "X-Amz-Algorithm", "X-Amz-Credential", "X-Amz-Date", "X-Amz-Security-Token", "X-Amz-Signature", "X-Amz-SignedHeaders", "DelaySeconds", "MessageAttribute", "MessageDeduplicationId", "MessageGroupId", "MessageSystemAttribute", "QueueUrl" }) do
-        new_body[k] = body[k] and body[k] or nil
-        body[k] = nil
-    end
+    new_body, body = move_values(new_body, body, { "Action", "Version", "X-Amz-Algorithm", "X-Amz-Credential", "X-Amz-Date", "X-Amz-Security-Token", "X-Amz-Signature", "X-Amz-SignedHeaders" })
     if service == 'sqs' then
+      new_body, body = move_values(new_body, body, { "DelaySeconds", "MessageAttribute", "MessageDeduplicationId", "MessageGroupId", "MessageSystemAttribute", "QueueUrl" })
       new_body["MessageBody"]=json_encode(body)
     end
     if service == 'sns' then
+      new_body, body = move_values(new_body, body, { "MessageAttributes", "MessageStructure", "PhoneNumber", "Subject", "TargetArn", "TopicArn" })
       new_body["Message"]=json_encode(body)
     end
     body=new_body
   end
 
-  if (service == 'sqs' and not body["MessageBody"]) or (service == 'sns' and body["Message"]) then
+  if (service == 'sqs' and not body["MessageBody"]) or (service == 'sns' and not body["Message"]) then
     kong.response.exit(400, "configure body_as_message_for_sns_sqs or send MessageBody for SQS or Message for SNS")
   end
 
