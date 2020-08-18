@@ -61,6 +61,27 @@ return {
             type = "boolean",
             default = true
           } },
+          { message_attributes_from_payload = {
+            type = "array",
+            required = false,
+            elements = {
+              type = "record",
+              required = false,
+              fields = {
+                  { attribute_name = { type = "string", required = true }, },
+                  { payload_path = { type = "string", required = true }, },
+                  { nasted_path = { type = "boolean", required = true, default = false }, },
+                  { fallback_value = { type = "string", default = 'value_not_found', required = true }, },
+                  { attribute_data_type = { type = "string", required = true, default='String', one_of = {
+                    "String",
+                    "String.Array",
+                    "Number",
+                    "Binary",
+                    },},},
+                  { erase_from_payload = { type = "boolean", default = false, required = true }, },
+              }, },
+            -- default = { { attribute_name = "my_attribute_name_1", payload_path = ""  } }
+          } },
         },
       },
     },

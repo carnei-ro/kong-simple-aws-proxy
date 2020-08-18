@@ -1,11 +1,20 @@
+local cjson = require("cjson.safe").new()
+cjson.decode_array_with_array_mt(true)
+
+
 local plugin_name = ({...})[1]:match("^kong%.plugins%.([^%.]+)")
 local encode_args = require("ngx").encode_args
 local decode_args = require("ngx").decode_args
-local json_encode = require('cjson').encode
+local json_encode = cjson.encode
+local json_decode = cjson.decode
 local aws_v4      = require("kong.plugins." .. plugin_name .. ".v4")
 local fmt         = string.format
 local kong        = kong
 local ipairs      = ipairs
+
+local pairs    = pairs
+local concat   = table.concat
+local tostring = tostring
 
 local _M = {}
 
@@ -36,6 +45,12 @@ local function move_values(tbl1, tbl2, keys)
   end
   return tbl1, tbl2
 end
+
+local tbl_attributes = {
+  '.Name',
+  '.Value.StringValue',
+  '.Value.DataType'
+}
 
 function _M.execute(conf)
 
@@ -144,6 +159,32 @@ function _M.execute(conf)
 
   if (service == 'sqs' and not body["MessageBody"]) or (service == 'sns' and not body["Message"]) then
     kong.response.exit(400, "configure body_as_message_for_sns_sqs or send MessageBody for SQS or Message for SNS")
+  end
+
+
+  if ((conf['message_attributes_from_payload']) and (service == 'sqs' or service == 'sns')) then
+    local attribute_prefix = (service == 'sqs') and 'MessageAttribute.' or 'MessageAttributes.member.'
+    local body_key = (service == 'sqs') and 'MessageBody' or 'Message'
+    local message_body = json_decode(body[body_key])
+    for index,configs in ipairs(conf['message_attributes_from_payload']) do
+      if (configs['nasted_path']) then
+        kong.response.exit(400, 'nasted_path in message_attributes_from_payload is not implemented yet')
+      end
+      if (configs['attribute_data_type'] ~= 'String') then
+        kong.response.exit(400, 'attribute_data_type in message_attributes_from_payload only supports "String" for now')
+      end
+      local attr_name = concat({attribute_prefix, tostring(index), tbl_attributes[1]})
+      local attr_string_value = concat({attribute_prefix, tostring(index), tbl_attributes[2]})
+      local attr_data_type = concat({attribute_prefix, tostring(index), tbl_attributes[3]})
+
+      body[attr_name] = configs['attribute_name']
+      body[attr_data_type] = configs['attribute_data_type']
+      body[attr_string_value] = message_body[configs['payload_path']] or configs['fallback_value']
+
+      if (configs['erase_from_payload']) then
+        kong.response.exit(400, 'erase_from_payload in message_attributes_from_payload is not implemented yet')
+      end
+    end
   end
 
   -- Prepare "opts" table used in the request

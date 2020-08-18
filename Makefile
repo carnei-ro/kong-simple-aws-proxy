@@ -7,10 +7,10 @@ SUMMARY := $(shell sed -n '/^summary: /s/^summary: //p' README.md)
 export UID GID NAME VERSION KONG_LICENSE_DATA
 
 build: rockspec validate
-	@find . -type f -iname "*lua~" -exec rm -f {} \;
-	@docker run --rm \
-          -v ${PWD}:/plugin \
-	  kong /bin/sh -c "apk add --no-cache zip > /dev/null 2>&1 ; cd /plugin ; luarocks make > /dev/null 2>&1 ; luarocks pack ${NAME} 2> /dev/null ; chown ${UID}:${GID} *.rock"
+	@find src/ -type f -iname "*lua~" -exec rm -f {} \;
+	@docker run --rm -u 0 -v ${PWD}:/plugin \
+		--entrypoint /bin/bash kong:2.0.3-centos \
+		-c "cd /plugin ; yum install -y zip; luarocks make > /dev/null 2>&1 ; luarocks pack ${NAME} 2> /dev/null ; chown ${UID}:${GID} *.rock"
 	@mkdir -p dist
 	@mv *.rock dist/
 	@printf '\n\n Check "dist" folder \n\n'
@@ -81,8 +81,12 @@ patch-aux:
 req-aux:
 	@curl -s http://localhost:8000/aux
 
+
+config-plugin-remove:
+	@curl -i -X DELETE http://localhost:8001/plugins/$$(curl -s http://localhost:8001/plugins/ | jq -r ".data[] |  select (.name|test(\"${NAME}\")) .id")
+
 config:
 	@curl -i -X POST http://localhost:8001/services/ --data "name=httpbin-anything" --data "url=http://localhost"
 	@curl -i -X POST http://localhost:8001/services/httpbin-anything/routes --data "paths[]=/" --data "name=root"
 	#@curl -i -X POST http://localhost:8001/services/httpbin-anything/plugins -d "name=${NAME}" -d config.override_path_via_body=true
-	@curl -i -X POST http://localhost:8001/services/httpbin-anything/plugins -d "name=${NAME}" -d config.api_prefix=true -d config.force_content_type_amz_json=true -d config.override_body[]='AWSService:ecr' -d config.override_body[]='AWSRegion:sa-east-1' -d config.querystring_to_payload[]='repositoryName:repositoryName' -d config.querystring_to_payload[]='registryId:registryId'  -d config.override_headers[]='X-Amz-Target:AmazonEC2ContainerRegistry_V20150921.ListImages'
+	@curl -i -X POST http://localhost:8001/services/httpbin-anything/plugins -H content-type:application/json -d '{   "config": {     "override_body": [       "Action:Publish",       "AWSService:sns",       "RequestPath:/",       "AWSRegion:us-east-2",       "TopicArn:arn:aws:sns:us-east-2:000000000000:EXAMPLE_TOPIC",       "Version:2010-03-31"     ],     "message_attributes_from_payload": [       {         "attribute_name": "message_attribute_1",         "payload_path": "tenant"       }     ],     "override_path_via_body": true   },   "name": "kong-simple-aws-proxy" }'
