@@ -23,6 +23,9 @@ plugins:
     override_headers: [] # ["headerName:value"]
     querystring_to_payload: [] # ["qsName:payloadKey"]
     body_as_message_for_sns_sqs: true
+    message_attributes_from_payload:
+    - attribute_name: <name>
+      payload_path: <key_in_payload>
 ```
 
 ## Use
