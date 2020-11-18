@@ -170,8 +170,8 @@ function _M.execute(conf)
       if (configs['nasted_path']) then
         kong.response.exit(400, 'nasted_path in message_attributes_from_payload is not implemented yet')
       end
-      if (configs['attribute_data_type'] ~= 'String') then
-        kong.response.exit(400, 'attribute_data_type in message_attributes_from_payload only supports "String" for now')
+      if (configs['attribute_data_type'] == 'Binary') then
+        kong.response.exit(400, 'attribute_data_type in message_attributes_from_payload only supports "String", "String.Array" and "Number" for now')
       end
       local attr_name = concat({attribute_prefix, tostring(index), tbl_attributes[1]})
       local attr_string_value = concat({attribute_prefix, tostring(index), tbl_attributes[2]})
@@ -179,7 +179,7 @@ function _M.execute(conf)
 
       body[attr_name] = configs['attribute_name']
       body[attr_data_type] = configs['attribute_data_type']
-      body[attr_string_value] = message_body[configs['payload_path']] or configs['fallback_value']
+      body[attr_string_value] = message_body[configs['payload_path']] and tostring(message_body[configs['payload_path']]) or tostring(configs['fallback_value'])
 
       if (configs['erase_from_payload']) then
         kong.response.exit(400, 'erase_from_payload in message_attributes_from_payload is not implemented yet')

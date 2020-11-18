@@ -68,6 +68,39 @@ services:
       - "8001:8001"
 
 
+
+  localstack:
+    image: localstack/localstack
+    ports:
+      - "4566:4566"
+    environment:
+      - SERVICES=sns,sqs
+      - DEFAULT_REGION=us-east-1
+
+  setup-resources:
+    image: mesosphere/aws-cli
+    environment:
+      - AWS_ACCESS_KEY_ID=AKIAEXAMPLE123
+      - AWS_SECRET_ACCESS_KEY=AWSSECRETACCESSEY123
+      - AWS_DEFAULT_REGION=us-east-1
+    entrypoint: /bin/sh -c
+    command: >
+      "
+        sleep 20
+
+        # Executing SNS
+        aws sns create-topic --name local_sns --endpoint-url=http://localstack:4566
+
+        # Executing SQS
+        aws sqs create-queue --endpoint-url=http://localstack:4566 --queue-name local_queue;
+
+        # Subscribing to SNS to SQS
+        aws --endpoint-url=http://localstack:4566 sns subscribe --attributes RawMessageDelivery=true --topic-arn arn:aws:sns:us-east-1:000000000000:local_sns --protocol sqs --notification-endpoint http://localstack:4576/queue/local_queue
+
+      "
+    depends_on:
+      - localstack
+
 volumes:
 
   plugin-development:
