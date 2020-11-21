@@ -90,3 +90,6 @@ config:
 	@curl -i -X POST http://localhost:8001/services/httpbin-anything/routes --data "paths[]=/" --data "name=root"
 	#@curl -i -X POST http://localhost:8001/services/httpbin-anything/plugins -d "name=${NAME}" -d config.override_path_via_body=true
 	@curl -i -X POST http://localhost:8001/services/httpbin-anything/plugins -H content-type:application/json -d '{   "config": {     "override_body": [       "Action:Publish",       "AWSService:sns",       "RequestPath:/",       "AWSRegion:us-east-2",       "TopicArn:arn:aws:sns:us-east-2:000000000000:EXAMPLE_TOPIC",       "Version:2010-03-31"     ],     "message_attributes_from_payload": [       {         "attribute_name": "message_attribute_1",         "payload_path": "tenant"       }     ],     "override_path_via_body": true   },   "name": "kong-simple-aws-proxy" }'
+
+resty-script:
+	@docker exec -it $$(docker ps -qf name=${NAME}_kong_1) /usr/local/openresty/bin/resty /plugin-development/resty-script.lua || true

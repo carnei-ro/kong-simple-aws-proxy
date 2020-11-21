@@ -166,24 +166,38 @@ function _M.execute(conf)
     local attribute_prefix = (service == 'sqs') and 'MessageAttribute.' or 'MessageAttributes.member.'
     local body_key = (service == 'sqs') and 'MessageBody' or 'Message'
     local message_body = json_decode(body[body_key])
-    for index,configs in ipairs(conf['message_attributes_from_payload']) do
+    local aux = {}
+    for _,configs in ipairs(conf['message_attributes_from_payload']) do
       if (configs['nasted_path']) then
         kong.response.exit(400, 'nasted_path in message_attributes_from_payload is not implemented yet')
       end
       if (configs['attribute_data_type'] == 'Binary') then
         kong.response.exit(400, 'attribute_data_type in message_attributes_from_payload only supports "String", "String.Array" and "Number" for now')
       end
-      local attr_name = concat({attribute_prefix, tostring(index), tbl_attributes[1]})
-      local attr_string_value = concat({attribute_prefix, tostring(index), tbl_attributes[2]})
-      local attr_data_type = concat({attribute_prefix, tostring(index), tbl_attributes[3]})
 
-      body[attr_name] = configs['attribute_name']
-      body[attr_data_type] = configs['attribute_data_type']
-      body[attr_string_value] = message_body[configs['payload_path']] and tostring(message_body[configs['payload_path']]) or tostring(configs['fallback_value'])
-
+      if message_body[configs['payload_path']] then
+        aux[(#aux+1)] = {
+          ['attribute_prefix'] = attribute_prefix,
+          [tbl_attributes[1]] = configs['attribute_name'],
+          [tbl_attributes[2]] = tostring(message_body[configs['payload_path']]),
+          [tbl_attributes[3]] = configs['attribute_data_type']
+        }
+      elseif configs['fallback_value'] then
+        aux[(#aux+1)] = {
+          ['attribute_prefix'] = attribute_prefix,
+          [tbl_attributes[1]] = configs['attribute_name'],
+          [tbl_attributes[2]] = tostring(configs['fallback_value']),
+          [tbl_attributes[3]] = configs['attribute_data_type']
+        }
+      end
       if (configs['erase_from_payload']) then
         kong.response.exit(400, 'erase_from_payload in message_attributes_from_payload is not implemented yet')
       end
+    end
+    for index,tbl in ipairs(aux) do
+      body[concat({tbl['attribute_prefix'], tostring(index), tbl_attributes[1]})] = tbl[tbl_attributes[1]]
+      body[concat({tbl['attribute_prefix'], tostring(index), tbl_attributes[2]})] = tbl[tbl_attributes[2]]
+      body[concat({tbl['attribute_prefix'], tostring(index), tbl_attributes[3]})] = tbl[tbl_attributes[3]]
     end
   end
 

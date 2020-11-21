@@ -71,7 +71,7 @@ return {
                   { attribute_name = { type = "string", required = true }, },
                   { payload_path = { type = "string", required = true }, },
                   { nasted_path = { type = "boolean", required = true, default = false }, },
-                  { fallback_value = { type = "string", default = 'value_not_found', required = true }, },
+                  { fallback_value = { type = "string", required = false }, },
                   { attribute_data_type = { type = "string", required = true, default='String', one_of = {
                     "String",
                     "String.Array",
