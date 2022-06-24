@@ -202,7 +202,11 @@ function _M.execute(conf)
   end
 
   local query = encode_args(body)
-  if (conf.force_content_type_form_urlencoded) and (service == 'sns') and (not request_payload) then
+  if (conf.force_content_type_form_urlencoded) and ((service == 'sns') or (service == 'sqs')) and (not request_payload) then
+    if (service == 'sqs') then
+      body['QueueUrl']='https://'..host..path
+      path="/"
+    end
     query = ""
     request_payload = encode_args(body)
     mimetype = "application/x-www-form-urlencoded; charset=utf-8"
