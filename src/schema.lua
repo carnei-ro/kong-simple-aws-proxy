@@ -41,6 +41,10 @@ return {
             type = "boolean",
             default = false
           } },
+          { force_content_type_form_urlencoded = {
+            type = "boolean",
+            default = false
+          } },
           { body_path_key = {
             type = "string",
             default = "RequestPath"

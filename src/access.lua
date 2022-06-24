@@ -139,7 +139,7 @@ function _M.execute(conf)
 
   local request_payload = nil
   if body[conf.body_payload_key] then
-    request_payload = json_encode(body['RequestPayload'])
+    request_payload = json_encode(body[conf.body_payload_key])
     body[conf.body_payload_key]=nil
   end
 
@@ -201,19 +201,32 @@ function _M.execute(conf)
     end
   end
 
+  local query = encode_args(body)
+  if (conf.force_content_type_form_urlencoded) and (service == 'sns') and (not request_payload) then
+    query = ""
+    request_payload = encode_args(body)
+    mimetype = "application/x-www-form-urlencoded; charset=utf-8"
+  end
+
+  local headers = {
+    ["Content-Type"] = mimetype,
+    ["Accept"] = "application/json"
+  }
+
+  if request_payload then
+    headers["Content-Length"] = tostring(#request_payload)
+  end
+
   -- Prepare "opts" table used in the request
   local opts = {
     region = region,
     service = service,
     method = AWS_METHOD,
-    headers = {
-      ["Content-Type"] = mimetype,
-      ["Accept"] = "application/json"
-    },
+    headers = headers,
     path = path,
     host = host,
     port = AWS_PORT,
-    query = encode_args(body),
+    query = query,
     body = request_payload
   }
 

@@ -56,15 +56,15 @@ stop: copy-docker-compose
 
 logs: kong-logs
 kong-logs:
-	@docker logs -f $$(docker ps -qf name=${NAME}_kong_1) 2>&1 || true
+	@docker logs -f $$(docker ps -qf name=${NAME}-kong-1) 2>&1 || true
 
 shell: kong-bash
 kong-bash:
-	@docker exec -it $$(docker ps -qf name=${NAME}_kong_1) bash || true
+	@docker exec -it $$(docker ps -qf name=${NAME}-kong-1) bash || true
 
 reload: kong-reload
 kong-reload:
-	@docker exec -it $$(docker ps -qf name=${NAME}_kong_1) bash -c "/usr/local/bin/kong reload"
+	@docker exec -it $$(docker ps -qf name=${NAME}-kong-1) bash -c "/usr/local/bin/kong reload"
 
 reconfigure: clean start kong-logs
 
@@ -92,4 +92,4 @@ config:
 	@curl -i -X POST http://localhost:8001/services/httpbin-anything/plugins -H content-type:application/json -d '{   "config": {     "override_body": [       "Action:Publish",       "AWSService:sns",       "RequestPath:/",       "AWSRegion:us-east-2",       "TopicArn:arn:aws:sns:us-east-2:000000000000:EXAMPLE_TOPIC",       "Version:2010-03-31"     ],     "message_attributes_from_payload": [       {         "attribute_name": "message_attribute_1",         "payload_path": "tenant"       }     ],     "override_path_via_body": true   },   "name": "kong-simple-aws-proxy" }'
 
 resty-script:
-	@docker exec -it $$(docker ps -qf name=${NAME}_kong_1) /usr/local/openresty/bin/resty /plugin-development/resty-script.lua || true
+	@docker exec -it $$(docker ps -qf name=${NAME}-kong-1) /usr/local/openresty/bin/resty /plugin-development/resty-script.lua || true
